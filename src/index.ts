@@ -26,7 +26,8 @@ export async function createTunneler({ amqpUrl, name }: TunnelerConfig) : Promis
   const conn = await amqp.connect(amqpUrl);
   const chan = await conn.createChannel();
   let tunnelerCore: TunnelerCore;
-  let messageHandlers: MessageHandlerMap = {};
+  const messageHandlers: MessageHandlerMap = {};
+  const serviceTunnels: { [service: string]: ServiceTunnel } = {};
 
   return {
     async handleMessages(handlers: MessageHandlerMap) {
@@ -34,8 +35,10 @@ export async function createTunneler({ amqpUrl, name }: TunnelerConfig) : Promis
       if (tunnelerCore) {
         return;
       }
-      await chan.assertQueue(name);
+
       tunnelerCore = createTunnelerCore(messageHandlers);
+
+      await chan.assertQueue(name);
 
       chan.consume(name, async (msg) => {
         if (!msg) { return; }
@@ -47,24 +50,14 @@ export async function createTunneler({ amqpUrl, name }: TunnelerConfig) : Promis
       });
     },
     async createServiceTunnel(serviceQueue): Promise<ServiceTunnel> {
+      if (serviceQueue in serviceTunnels) {
+        return serviceTunnels[serviceQueue];
+      }
       const responseQueue = `${serviceQueue}::${name}/${uuid.v4()}`;
-
-      await Promise.all([
-        chan.assertQueue(responseQueue, { durable: false, autoDelete: true }),
-        chan.assertQueue(serviceQueue),
-      ]);
 
       const serviceTunnelCore = createServiceTunnelCore();
 
-      chan.consume(responseQueue, msg => {
-        if (!msg) { return; }
-
-        const res = JSON.parse(msg.content.toString()) as TunnelerResponse;
-        serviceTunnelCore.handleTunnelerResponse(res);
-        chan.ack(msg);
-      });
-
-      return {
+      const serviceTunnel : ServiceTunnel = {
         send(type, payload) {
           const message: ServiceMessage = { cid: uuid.v4(), type, payload, responseQueue };
           const promise = serviceTunnelCore.createResponsePromise(message);
@@ -72,6 +65,22 @@ export async function createTunneler({ amqpUrl, name }: TunnelerConfig) : Promis
           return promise;
         }
       };
+      serviceTunnels[serviceQueue] = serviceTunnel;
+
+      await Promise.all([
+        chan.assertQueue(responseQueue, { durable: false, autoDelete: true }),
+        chan.assertQueue(serviceQueue),
+      ]);
+
+      await chan.consume(responseQueue, msg => {
+        if (!msg) { return; }
+
+        const res = JSON.parse(msg.content.toString()) as TunnelerResponse;
+        serviceTunnelCore.handleTunnelerResponse(res);
+        chan.ack(msg);
+      });
+
+      return serviceTunnel;
     },
   };
 }
