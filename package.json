@@ -1,0 +1,23 @@
+{
+  "name": "@kof3r/tunneler",
+  "version": "1.0.8",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist/ && tsc",
+    "prepublish": "npm run build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.3",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.5.12",
+    "@types/uuid": "^3.4.4",
+    "rimraf": "^2.6.3",
+    "typescript": "^3.4.5"
+  }
+}
