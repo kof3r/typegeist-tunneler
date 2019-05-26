@@ -2,7 +2,7 @@
 import amqp from 'amqplib';
 import uuid from 'uuid';
 
-import { createTunnelerCore, createServiceTunnelCore, TunnelerResponse, MessageHandlerMap, TunnelerMessage } from './tunneler-core';
+import { createTunnelerCore, createServiceTunnelCore, TunnelerResponse, MessageHandlerMap, TunnelerMessage, TunnelerCore } from './tunneler-core';
 
 interface TunnelerConfig {
   amqpUrl: string
@@ -25,11 +25,17 @@ interface ServiceMessage extends TunnelerMessage {
 export async function createTunneler({ amqpUrl, name }: TunnelerConfig) : Promise<Tunneler> {
   const conn = await amqp.connect(amqpUrl);
   const chan = await conn.createChannel();
+  let tunnelerCore: TunnelerCore;
+  let messageHandlers: MessageHandlerMap = {};
 
   return {
     async handleMessages(handlers: MessageHandlerMap) {
+      Object.assign(messageHandlers, handlers);
+      if (tunnelerCore) {
+        return;
+      }
       await chan.assertQueue(name);
-      const tunnelerCore = createTunnelerCore(handlers);
+      tunnelerCore = createTunnelerCore(messageHandlers);
 
       chan.consume(name, async (msg) => {
         if (!msg) { return; }
