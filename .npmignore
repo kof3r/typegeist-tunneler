@@ -3,3 +3,5 @@ src/
 .editorconfig
 index.js
 tsconfig.json
+*.spec.js
+*.spec.d.ts
