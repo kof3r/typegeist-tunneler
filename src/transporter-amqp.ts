@@ -1,10 +1,6 @@
 
 import amqp from 'amqplib';
-
-export interface Transporter {
-  receive(queue: string, handler: (msg: any) => void, options?: { durable: boolean, autoDelete: boolean }): void,
-  send(queue: string, message: any, options?: { expiration: number }): boolean
-}
+import { Transporter } from './transporter';
 
 export async function createAmqpTransporter({ amqpUrl }: { amqpUrl: string }): Promise<Transporter> {
   const conn = await amqp.connect(amqpUrl);
