@@ -1,12 +1,14 @@
 {
   "name": "@kof3r/tunneler",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "build": "rimraf dist/ && tsc",
-    "prepublish": "npm test && npm run build"
+    "prepublish": "npm test && npm run build",
+    "example:req": "ts-node example/requester.ts",
+    "example:res": "ts-node example/responder.ts"
   },
   "author": "",
   "license": "ISC",
