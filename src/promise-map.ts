@@ -6,38 +6,46 @@ type Resolution = {
 }
 
 export function createPromiseMap({ timeout = 30000 } = {}) {
-  const resolutions: { [cid: string]: Resolution } = {};
+  const map: Map<string, Resolution> = new Map();
 
   return {
     create(id: string): Promise<any> {
       const promise = new Promise((resolve, reject) => {
-        resolutions[id] = {
-          resolve,
-          reject,
-          timeout: setTimeout(() => {
-            resolutions[id].reject(new Error('timeout'));
-            delete resolutions[id];
-          }, timeout),
-        };
+        map.set(
+          id,
+          {
+            resolve,
+            reject,
+            timeout: setTimeout(() => {
+              const r = map.get(id);
+              if (r) {
+                r.reject(new Error('timeout'));
+                map.delete(id);
+              }
+            }, timeout),
+          }
+        );
       });
       return promise;
     },
     resolve(id: string, value: any) {
-      if (id in resolutions) {
-        resolutions[id].resolve(value);
-        clearTimeout(resolutions[id].timeout);
-        delete resolutions[id];
+      const r = map.get(id);
+      if (r) {
+        r.resolve(value);
+        clearTimeout(r.timeout);
+        map.delete(id);
       }
     },
     reject(id: string, error: any) {
-      if (id in resolutions) {
-        resolutions[id].reject(error);
-        clearTimeout(resolutions[id].timeout);
-        delete resolutions[id];
+      const r = map.get(id);
+      if (r) {
+        r.reject(error);
+        clearTimeout(r.timeout);
+        map.delete(id);
       }
     },
     get length(): number {
-      return Object.keys(resolutions).length;
+      return map.size;
     }
   };
 }
