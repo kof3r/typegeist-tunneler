@@ -1,5 +1,6 @@
 
 import amqp, { Channel } from 'amqplib';
+
 import { Transporter } from './transporter';
 
 export async function createAmqpTransporter({ amqpUrl }: { amqpUrl: string }): Promise<Transporter> {
